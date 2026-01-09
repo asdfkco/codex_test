@@ -6,7 +6,8 @@ const port = process.env.PORT || 4000;
 
 app.use(cors());
 
-const EXCHANGE_URL = "https://api.exchangerate.host/latest?base=KRW";
+const EXCHANGE_URL = "https://open.er-api.com/v6/latest/KRW";
+const YAHOO_CHART_URL = "https://query2.finance.yahoo.com/v8/finance/chart";
 const CRYPTO_URL =
   "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple&vs_currencies=krw";
 const STOCK_SYMBOLS = [
@@ -27,10 +28,13 @@ app.get("/api/exchange", async (_req, res) => {
       throw new Error("Failed to fetch exchange data");
     }
     const data = await response.json();
+    if (data?.result !== "success") {
+      throw new Error("Failed to fetch exchange data");
+    }
     const rates = data?.rates || {};
     res.json({
-      base: data.base,
-      date: data.date,
+      base: data.base_code,
+      date: data.time_last_update_utc,
       rates: {
         USD: rates.USD,
         JPY: rates.JPY,
@@ -65,26 +69,31 @@ app.get("/api/crypto", async (_req, res) => {
 
 app.get("/api/stocks", async (_req, res) => {
   try {
-    const symbols = STOCK_SYMBOLS.map((item) => item.symbol).join(",");
-    const response = await fetch(
-      `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbols}`
+    const mapped = await Promise.all(
+      STOCK_SYMBOLS.map(async (item) => {
+        const response = await fetch(`${YAHOO_CHART_URL}/${item.symbol}`, {
+          headers: { "User-Agent": "Mozilla/5.0" }
+        });
+        if (!response.ok) {
+          throw new Error("Failed to fetch stock data");
+        }
+        const data = await response.json();
+        const meta = data?.chart?.result?.[0]?.meta;
+        const price = meta?.regularMarketPrice ?? null;
+        const previousClose = meta?.chartPreviousClose ?? meta?.previousClose ?? null;
+        const change = price !== null && previousClose !== null ? price - previousClose : null;
+        const changePercent =
+          change !== null && previousClose ? (change / previousClose) * 100 : null;
+        return {
+          symbol: item.symbol,
+          name: item.name,
+          price,
+          change,
+          changePercent,
+          currency: meta?.currency ?? "KRW"
+        };
+      })
     );
-    if (!response.ok) {
-      throw new Error("Failed to fetch stock data");
-    }
-    const data = await response.json();
-    const quotes = data?.quoteResponse?.result || [];
-    const mapped = STOCK_SYMBOLS.map((item) => {
-      const quote = quotes.find((entry) => entry.symbol === item.symbol);
-      return {
-        symbol: item.symbol,
-        name: item.name,
-        price: quote?.regularMarketPrice ?? null,
-        change: quote?.regularMarketChange ?? null,
-        changePercent: quote?.regularMarketChangePercent ?? null,
-        currency: quote?.currency ?? "KRW"
-      };
-    });
     res.json({
       updatedAt: new Date().toISOString(),
       stocks: mapped
