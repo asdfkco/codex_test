@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>한국 주요 환율/코인/주식 대시보드</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>한국 주요 환율 · 코인 · 주식</h1>
+        <p class="subtitle">무료 공개 API로 제공되는 실시간 시장 요약</p>
+      </header>
+
+      <section class="grid">
+        <article class="card" id="exchange-card">
+          <h2>환율 (KRW 기준)</h2>
+          <div class="meta" id="exchange-date">불러오는 중...</div>
+          <ul class="list" id="exchange-list"></ul>
+        </article>
+
+        <article class="card" id="crypto-card">
+          <h2>코인 시세 (KRW)</h2>
+          <div class="meta" id="crypto-date">불러오는 중...</div>
+          <ul class="list" id="crypto-list"></ul>
+        </article>
+
+        <article class="card" id="stock-card">
+          <h2>국내 주요 주식</h2>
+          <div class="meta" id="stock-date">불러오는 중...</div>
+          <div class="table" id="stock-table"></div>
+        </article>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        데이터 제공: exchangerate.host · CoinGecko · Yahoo Finance (unofficial)
+      </p>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>
